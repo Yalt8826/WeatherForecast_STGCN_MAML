@@ -1,0 +1,31 @@
+# --- Python cache and compiled files ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# --- Virtual environments ---
+venv/
+env/
+.env/
+miniproj-env/
+
+# --- Datasets / output data ---
+Out_Data/
+
+# --- Build and distribution directories ---
+build/
+dist/
+*.egg-info/
+
+# --- VS Code ---
+.vscode/
+
+# --- OS-specific ---
+.DS_Store
+Thumbs.db
+
+dataset_cache/
+
+processed_dataset_-20_-15_25_30.pkl

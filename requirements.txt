@@ -1,0 +1,11 @@
+# Core data processing (can install first)
+xarray
+numpy
+pandas
+scipy
+netCDF4
+h5py
+tqdm
+
+# Meta-learning
+higher
