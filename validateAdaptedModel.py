@@ -176,10 +176,10 @@ for t_idx, ts in enumerate(input_timesteps):
     if t_idx >= x_avg.shape[0]:
         continue
     print(f"Time: {ts}")
-    for v_idx in range(min(3, nvars)):  # Show first 3 variables
-        if v_idx < x_avg.shape[1]:  # Check bounds
-            true_phys = x_avg[t_idx, v_idx] * std[v_idx] + mean[v_idx]
-            print(f"  {VAR_NAMES[v_idx]}: {true_phys:.2f}")
+    # Only show t2m (index 2)
+    if 2 < x_avg.shape[1]:
+        true_phys = x_avg[t_idx, 2] * std[2] + mean[2]
+        print(f"  t2m: {true_phys:.2f}K")
     print()
 
 print("\nOUTPUT (Next 1 day - 24 hours):")
@@ -188,13 +188,11 @@ for t_idx, ts in enumerate(forecast_timesteps):
     if t_idx >= y_true_avg.shape[0] or t_idx >= y_pred_avg.shape[0]:
         continue
     print(f"Time: {ts}")
-    for v_idx in range(min(3, nvars)):  # Show first 3 variables
-        if v_idx < y_true_avg.shape[1] and v_idx < y_pred_avg.shape[1]:  # Check bounds
-            true_phys = y_true_avg[t_idx, v_idx] * std[v_idx] + mean[v_idx]
-            pred_phys = y_pred_avg[t_idx, v_idx] * std[v_idx] + mean[v_idx]
-            print(
-                f"  {VAR_NAMES[v_idx]} - True: {true_phys:.2f}, Pred: {pred_phys:.2f}"
-            )
+    # Only show t2m (index 2)
+    if 2 < y_true_avg.shape[1] and 2 < y_pred_avg.shape[1]:
+        true_phys = y_true_avg[t_idx, 2] * std[2] + mean[2]
+        pred_phys = y_pred_avg[t_idx, 2] * std[2] + mean[2]
+        print(f"  t2m - True: {true_phys:.2f}K, Pred: {pred_phys:.2f}K")
     print()
 
 # Save detailed CSV
@@ -234,11 +232,13 @@ print("\n" + "=" * 80)
 print("FORECAST ACCURACY (First Sample Only)")
 print("=" * 80)
 
-for v_idx, var in enumerate(VAR_NAMES):
-    true_vals = y_true_avg[:, v_idx] * std[v_idx] + mean[v_idx]
-    pred_vals = y_pred_avg[:, v_idx] * std[v_idx] + mean[v_idx]
-    rmse = np.sqrt(np.mean((pred_vals - true_vals) ** 2))
-    bias = np.mean(pred_vals - true_vals)
-    print(f"{var:6s}: RMSE={rmse:8.2f}, Bias={bias:8.2f}")
+# Only show t2m accuracy
+v_idx = 2  # t2m index
+var = "t2m"
+true_vals = y_true_avg[:, v_idx] * std[v_idx] + mean[v_idx]
+pred_vals = y_pred_avg[:, v_idx] * std[v_idx] + mean[v_idx]
+rmse = np.sqrt(np.mean((pred_vals - true_vals) ** 2))
+bias = np.mean(pred_vals - true_vals)
+print(f"{var}: RMSE={rmse:.2f}K, Bias={bias:.2f}K")
 
 print("=" * 80)

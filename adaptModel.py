@@ -13,6 +13,7 @@ from featurePreprocessor import prepare_model_input
 from dataset import WeatherGraphDataset
 from model import STGCN
 from temporal_model import TemporalSTGCN
+from physics_loss import PhysicsAwareLoss
 
 # Configurable parameters
 YEARS = [2023, 2024]  # Use 2 years for adaptation
@@ -104,8 +105,12 @@ optimizer = torch.optim.SGD(
     lr=inner_lr,
     weight_decay=weight_decay,
 )
-# Use MAE loss to encourage variation
-criterion = torch.nn.L1Loss()  # or torch.nn.SmoothL1Loss()
+# Use physics-aware loss to encourage temporal variation
+criterion = PhysicsAwareLoss(
+    base_loss_weight=0.7,      # Primary prediction accuracy
+    variation_weight=0.2,      # Force temporal variation
+    continuity_weight=0.1      # Smooth transitions
+).to(DEVICE)
 support_loader = DataLoader(
     support_ds,
     batch_size=1,
@@ -125,7 +130,8 @@ for epoch in range(inner_epochs):
         batch = batch.to(DEVICE)
         optimizer.zero_grad()
         out = temp_model(batch.x, batch.edge_index)
-        loss = criterion(out, batch.y)
+        # Physics loss needs predictions, targets, num_nodes, forecast_horizon
+        loss = criterion(out, batch.y, num_nodes, FORECAST_HORIZON)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(
             list(temp_model.parameters()) + list(temp_koppen.parameters()),
@@ -152,10 +158,12 @@ total_loss = 0.0
 n_batches = 0
 
 with torch.no_grad():
+    # Use MSE for evaluation (not physics loss)
+    mse_criterion = torch.nn.MSELoss()
     for batch in query_loader:
         batch = batch.to(DEVICE)
         out = temp_model(batch.x, batch.edge_index)
-        loss = criterion(out, batch.y)
+        loss = mse_criterion(out, batch.y)
         total_loss += loss.item()
         n_batches += 1
 
