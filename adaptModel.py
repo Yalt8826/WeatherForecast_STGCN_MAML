@@ -7,7 +7,6 @@ import copy
 
 # Import your project modules
 from embed_utils import add_time_embeddings, KoppenEmbedding
-
 from dataLoader import main_dataloader
 from graphBuilder import build_spatial_graph
 from featurePreprocessor import prepare_model_input
@@ -15,7 +14,7 @@ from dataset import WeatherGraphDataset
 from model import STGCN
 
 # Configurable parameters
-YEAR = 2021
+YEARS = [2023, 2024]  # Use 2 years for adaptation
 REGION_BOUNDS = (-40, -35, 140, 145)
 MODEL_PATH = "./Out_Data/SavedModels/maml_model_multivar_(LongerWindowSize&LRRate).pt"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -28,14 +27,16 @@ ds, koppen_code, _ = main_dataloader(lat_min, lat_max, lon_min, lon_max)
 if "day_of_year_sin" not in ds:
     ds = add_time_embeddings(ds)
 
-# 2. Filter to one year using 'valid_time' coordinate (common in weather datasets)
+# 2. Filter to multiple years using 'valid_time' coordinate
 if "valid_time" in ds.coords:
-    # If valid_time is datetime64 type, use .dt.year
     try:
-        ds = ds.sel(valid_time=ds["valid_time"].dt.year == YEAR)
+        # Select data from multiple years
+        year_mask = ds["valid_time"].dt.year.isin(YEARS)
+        ds = ds.sel(valid_time=year_mask)
+        print(f"Selected data from years: {YEARS}")
+        print(f"Total timesteps: {ds.sizes['valid_time']}")
     except Exception as e:
-        # In case 'valid_time' is not datetime64, show diagnostic info
-        print("Error filtering by year, 'valid_time' type:", ds["valid_time"].dtype)
+        print("Error filtering by years, 'valid_time' type:", ds["valid_time"].dtype)
         raise
 else:
     print("No 'valid_time' coordinate found. Available coords:", list(ds.coords))
@@ -83,6 +84,15 @@ inner_lr = 0.005
 weight_decay = checkpoint["config"]["weight_decay"]
 max_grad_norm = checkpoint["config"]["max_grad_norm"]
 
+print(f"\n" + "=" * 60)
+print(f"STARTING ADAPTATION ON {YEARS} DATA")
+print(f"Region: {REGION_BOUNDS}")
+print(f"Support samples: {len(support_ds)}")
+print(f"Query samples: {len(query_ds)}")
+print(f"Inner epochs: {inner_epochs}")
+print(f"Inner LR: {inner_lr}")
+print("=" * 60)
+
 temp_model = copy.deepcopy(model)
 temp_koppen = copy.deepcopy(koppen_embed)
 temp_model.train()
@@ -101,7 +111,13 @@ support_loader = DataLoader(
     pin_memory=(DEVICE == "cuda"),
 )
 
+print("\nAdaptation Progress:")
+print("-" * 40)
+
 for epoch in range(inner_epochs):
+    epoch_losses = []
+    batch_count = 0
+    
     for batch in support_loader:
         batch = batch.to(DEVICE)
         optimizer.zero_grad()
@@ -113,6 +129,15 @@ for epoch in range(inner_epochs):
             max_grad_norm,
         )
         optimizer.step()
+        
+        epoch_losses.append(loss.item())
+        batch_count += 1
+    
+    avg_epoch_loss = sum(epoch_losses) / len(epoch_losses)
+    print(f"Epoch {epoch+1}/{inner_epochs}: Avg Loss = {avg_epoch_loss:.6f} ({batch_count} batches)")
+
+print("-" * 40)
+print("Adaptation completed!")
 
 # 7. Evaluation (MSE on query set—no further training)
 temp_model.eval()
@@ -132,24 +157,27 @@ with torch.no_grad():
         n_batches += 1
 
 avg_query_loss = total_loss / n_batches if n_batches > 0 else float("nan")
-print(
-    f"Meta-adapted model's query MSE on {YEAR} ({REGION_BOUNDS}): {avg_query_loss:.4f}"
-)
+print(f"\nEvaluation on Query Set:")
+print(f"Query MSE: {avg_query_loss:.6f} (averaged over {n_batches} batches)")
+print(f"Meta-adapted model performance on {YEARS} {REGION_BOUNDS}: {avg_query_loss:.4f}")
 
 save_dir = "./Out_Data/AdaptedModels"
 os.makedirs(save_dir, exist_ok=True)
-save_path = os.path.join(save_dir, f"adapted_model_{YEAR}_{REGION_BOUNDS}.pt")
+years_str = "_".join(map(str, YEARS))
+save_path = os.path.join(save_dir, f"adapted_model_{years_str}_{REGION_BOUNDS}.pt")
 torch.save(
     {
         "model_state_dict": temp_model.state_dict(),
         "koppen_embed_state_dict": temp_koppen.state_dict(),
-        "year": YEAR,
+        "years": YEARS,
         "region": REGION_BOUNDS,
-        "stats": stats,  # Optional: save normalization stats
+        "stats": stats,
         "support_size": len(support_ds),
         "query_size": len(query_ds),
         "config": checkpoint["config"],
     },
     save_path,
 )
-print(f"Adapted model saved to: {save_path}")
+print(f"\n✅ Adapted model saved to: {save_path}")
+print(f"Model adapted from base MAML to {YEARS} data with {inner_epochs} epochs")
+print("=" * 60)
