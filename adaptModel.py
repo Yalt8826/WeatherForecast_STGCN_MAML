@@ -12,6 +12,7 @@ from graphBuilder import build_spatial_graph
 from featurePreprocessor import prepare_model_input
 from dataset import WeatherGraphDataset
 from model import STGCN
+from temporal_model import TemporalSTGCN
 
 # Configurable parameters
 YEARS = [2023, 2024]  # Use 2 years for adaptation
@@ -64,13 +65,14 @@ query_ds = Subset(dataset, query_idx)
 
 # 5. Load meta-trained model and embedding
 checkpoint = torch.load(MODEL_PATH, map_location=DEVICE)
+# Use original STGCN (temporal model needs retraining from scratch)
 model = STGCN(
     in_channels=checkpoint["config"]["input_channels"],
     hidden_channels=checkpoint["config"]["hidden_channels"],
     out_channels=checkpoint["config"]["output_channels"],
     window_size=checkpoint["config"]["window_size"],
     forecast_horizon=checkpoint["config"]["forecast_horizon"],
-    dropout_rate=0.3,
+    dropout_rate=0.1,  # Much lower dropout for more expressiveness
 ).to(DEVICE)
 koppen_embed = KoppenEmbedding(embedding_dim=koppen_embed_dim).to(DEVICE)
 model.load_state_dict(checkpoint["model_state_dict"])
@@ -79,8 +81,8 @@ model.eval()
 koppen_embed.eval()
 
 # 6. Adaptation (inner loop) on support set
-inner_epochs = 3
-inner_lr = 0.005
+inner_epochs = 10  # Much more adaptation steps
+inner_lr = 0.02   # Even higher learning rate to break out of averaging
 weight_decay = checkpoint["config"]["weight_decay"]
 max_grad_norm = checkpoint["config"]["max_grad_norm"]
 
@@ -102,7 +104,8 @@ optimizer = torch.optim.SGD(
     lr=inner_lr,
     weight_decay=weight_decay,
 )
-criterion = torch.nn.MSELoss()
+# Use MAE loss to encourage variation
+criterion = torch.nn.L1Loss()  # or torch.nn.SmoothL1Loss()
 support_loader = DataLoader(
     support_ds,
     batch_size=1,

@@ -5,6 +5,7 @@ import os
 import csv
 
 from model import STGCN
+from temporal_model import TemporalSTGCN
 from graphBuilder import build_spatial_graph
 from featurePreprocessor import prepare_model_input
 from dataset import WeatherGraphDataset
@@ -35,6 +36,7 @@ print("Loading model checkpoint:", MODEL_PATH)
 checkpoint = torch.load(MODEL_PATH, map_location=DEVICE)
 config = checkpoint["config"]
 
+# Use original STGCN model (matches saved checkpoint)
 model = STGCN(
     in_channels=config["input_channels"],
     hidden_channels=config["hidden_channels"],
