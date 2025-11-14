@@ -25,8 +25,8 @@ if torch.cuda.is_available():
 
 # ========== CONFIGURATION ==========
 NUM_EPOCHS = 50
-BATCH_SIZE = 3  # Number of meta-tasks per batch, NOT node batch!
-INNER_BATCH_SIZE = 1  # Must be 1 for shape-stable processing!
+BATCH_SIZE = 3
+INNER_BATCH_SIZE = 1
 INNER_EPOCHS_PER_TASK = 3
 INNER_LR = 0.005
 OUTER_LR = 0.0005
@@ -44,22 +44,23 @@ OUTPUT_CHANNELS = NUM_WEATHER_VARS
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 META_TRAIN_REGIONS = [
-    (-9.5, -4.5, -67.5, -62.5),
-    (12.5, 17.5, 102.5, 107.5),
-    (22.5, 27.5, 19.5, 24.5),
-    (-23.5, -18.5, 132.5, 137.5),
-    (43.5, 48.5, 7.5, 12.5),
-    (35.5, 40.5, -5.5, -0.5),
-    (53.5, 58.5, 34.5, 39.5),
-    (44.5, 49.5, 125.5, 130.5),
-    (67.5, 72.5, -32.5, -27.5),
-    (-20, -15, -70, -65),
-    (32.5, 37.5, 137.5, 142.5),
-    (-35.5, -30.5, 16.5, 21.5),
-    (51.5, 56.5, -112.5, -107.5),
-    (29.5, 34.5, -101.5, -96.5),
-    (11.5, 16.5, 86.5, 91.5),
+    (-9.5, -4.5, -67.5, -62.5),  # Amazon Basin, Brazil
+    (12.5, 17.5, 102.5, 107.5),  # Thailand/Cambodia
+    (22.5, 27.5, 19.5, 24.5),  # Libya/Egypt
+    (-23.5, -18.5, 132.5, 137.5),  # Northern Territory, Australia
+    (43.5, 48.5, 7.5, 12.5),  # Southern France
+    (35.5, 40.5, -5.5, -0.5),  # Spain/Mediterranean
+    (53.5, 58.5, 34.5, 39.5),  # Central Russia
+    (44.5, 49.5, 125.5, 130.5),  # Northeast China/Manchuria
+    (67.5, 72.5, -32.5, -27.5),  # Greenland
+    (-20, -15, -70, -65),  # Peru/Western Amazon
+    (32.5, 37.5, 137.5, 142.5),  # Tokyo/Eastern Japan
+    (-35.5, -30.5, 16.5, 21.5),  # South Africa
+    (51.5, 56.5, -112.5, -107.5),  # Alberta, Canada
+    (29.5, 34.5, -101.5, -96.5),  # Texas, USA
+    (11.5, 16.5, 86.5, 91.5),  # Bangladesh/India
 ]
+
 
 print("\n" + "=" * 80)
 print("MAML TRAINING: MULTI-VARIABLE WEATHER FORECASTING")
