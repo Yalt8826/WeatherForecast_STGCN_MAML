@@ -13,6 +13,7 @@ regions = [
     ((70, 75, 82, 87), "NorthSiberia"),
     ((35, 40, 69, 74), "Afghanistan"),
     ((15, 20, 30, 35), "Sudan"),
+    ((18, 23, 75, 80), "India"),
 ]
 
 time_taken = {}
@@ -22,7 +23,6 @@ for region in regions:
         start = time.time()
         region_coords, region_name = region
         print(f"\n🌍 Processing region: {region_name}")
-        adaptModel(region_coords, region_name)
         validateAdapted(region_coords, region_name)
         print(f"✅ Completed validation for {region_name}")
         end = time.time()

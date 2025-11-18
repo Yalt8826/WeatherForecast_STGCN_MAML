@@ -18,23 +18,44 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 def load_adaptation_data(region_coords):
-    """Load 2024 data for adaptation"""
-    # Load 2024 Q1 data for adaptation
-    base_path = "E:/Study/5th Sem Mini Project/Datasets/2024/Jan2Mar"
-    accum_file = os.path.join(base_path, "data_stream-oper_stepType-accum.nc")
-    instant_file = os.path.join(base_path, "data_stream-oper_stepType-instant.nc")
-
+    """Load 2023 and 2024 data for adaptation"""
+    datasets = []
+    
+    # Load 2023 Q1 data
+    base_path_2023 = "E:/Study/5th Sem Mini Project/Datasets/2023/Jan2Mar"
+    accum_file_2023 = os.path.join(base_path_2023, "data_stream-oper_stepType-accum.nc")
+    instant_file_2023 = os.path.join(base_path_2023, "data_stream-oper_stepType-instant.nc")
+    
+    print("Loading 2023 Q1 data for adaptation...")
+    ds_accum_2023 = xr.open_dataset(accum_file_2023)
+    ds_instant_2023 = xr.open_dataset(instant_file_2023)
+    ds_2023 = xr.merge([ds_accum_2023, ds_instant_2023])
+    
+    # Load 2024 Q1 data
+    base_path_2024 = "E:/Study/5th Sem Mini Project/Datasets/2024/Jan2Mar"
+    accum_file_2024 = os.path.join(base_path_2024, "data_stream-oper_stepType-accum.nc")
+    instant_file_2024 = os.path.join(base_path_2024, "data_stream-oper_stepType-instant.nc")
+    
     print("Loading 2024 Q1 data for adaptation...")
-    ds_accum = xr.open_dataset(accum_file)
-    ds_instant = xr.open_dataset(instant_file)
-    ds_2024 = xr.merge([ds_accum, ds_instant])
-
+    ds_accum_2024 = xr.open_dataset(accum_file_2024)
+    ds_instant_2024 = xr.open_dataset(instant_file_2024)
+    ds_2024 = xr.merge([ds_accum_2024, ds_instant_2024])
+    
+    # Extract region for both years
     lat_min, lat_max, lon_min, lon_max = region_coords
-    ds_2024 = ds_2024.sel(
+    
+    ds_2023_reg = ds_2023.sel(
         latitude=slice(lat_max, lat_min), longitude=slice(lon_min, lon_max)
     )
-
-    return ds_2024
+    ds_2024_reg = ds_2024.sel(
+        latitude=slice(lat_max, lat_min), longitude=slice(lon_min, lon_max)
+    )
+    
+    # Combine both years
+    combined_ds = xr.concat([ds_2023_reg, ds_2024_reg], dim="valid_time")
+    print(f"Combined 2023+2024 data: {dict(combined_ds.sizes)}")
+    
+    return combined_ds
 
 
 def adaptModel(region_coords, region_name):
@@ -123,8 +144,8 @@ def adaptModel(region_coords, region_name):
 
     print(f"Adaptation dataset size: {len(dataset)}")
 
-    # Create train/val split for adaptation
-    max_samples = min(500, len(dataset))
+    # Create train/val split for adaptation - more samples with 2 years of data
+    max_samples = min(800, len(dataset))  # Increased for 2-year dataset
     train_size = int(0.8 * max_samples)
 
     train_indices = list(range(0, train_size))
@@ -150,8 +171,8 @@ def adaptModel(region_coords, region_name):
 
     train_loader = DataLoader(train_ds, batch_size=1, shuffle=True, num_workers=0)
 
-    # Training loop - extended for tropical Model 4.0
-    epochs = 18  # Standard epochs for temperate patterns
+    # Training loop - extended for 2-year adaptation
+    epochs = 25  # More epochs for richer 2-year dataset
     for epoch in range(epochs):
         epoch_losses = []
 

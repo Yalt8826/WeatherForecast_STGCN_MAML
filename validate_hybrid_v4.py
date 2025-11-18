@@ -253,7 +253,7 @@ def validateAdapted(region_coords, region_name):
     plt.savefig(
         f"./Out_Data/{region_name}_temperature.png", dpi=150, bbox_inches="tight"
     )
-    plt.show()
+    plt.close()
 
     # Create all variables graph
     fig, axes = plt.subplots(2, 3, figsize=(15, 10))
@@ -281,7 +281,7 @@ def validateAdapted(region_coords, region_name):
     plt.savefig(
         f"./Out_Data/{region_name}_all_variables.png", dpi=150, bbox_inches="tight"
     )
-    plt.show()
+    plt.close()
 
     # Calculate metrics
     total_mse = 0
