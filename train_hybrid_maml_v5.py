@@ -30,9 +30,9 @@ OUTER_LR = 0.001  # Optimized base rate
 GRAD_ACCUMULATION_STEPS = 2  # Effective batch size = 8
 WINDOW_SIZE = 24  # Full temporal context
 FORECAST_HORIZON = 8  # Extended predictions
-HIDDEN_CHANNELS = 128  # Maximum GCN capacity
-LSTM_HIDDEN_SIZE = 64  # Large LSTM
-LSTM_NUM_LAYERS = 2  # Multi-layer temporal processing
+HIDDEN_CHANNELS = 256  # Ultra maximum GCN capacity
+LSTM_HIDDEN_SIZE = 128  # Ultra large LSTM
+LSTM_NUM_LAYERS = 4  # Deep multi-layer temporal processing
 
 INPUT_CHANNELS = 12 + 4 + 8  # 24 total
 OUTPUT_CHANNELS = 12
@@ -58,7 +58,7 @@ MODEL_4_REGIONS = [
 ]
 
 print("=" * 80)
-print("🚀 HYBRID STGCN+LSTM MAML MODEL 4.0 - ULTRA SCALED")
+print("🚀 HYBRID STGCN+LSTM MAML MODEL 5.0 - ULTRA SCALED")
 print("=" * 80)
 print(f"Device: {DEVICE}")
 print(f"Regions: {len(MODEL_4_REGIONS)} (Complete Global Coverage)")
@@ -185,7 +185,7 @@ def meta_update_v4(hybrid_model, koppen_embed, tasks, device, meta_optimizer):
 
 
 def main():
-    print("Creating Model 4.0 Ultra Scaled Hybrid...")
+    print("Creating Model 5.0 Ultra Scaled Hybrid...")
 
     # Maximum capacity STGCN
     base_stgcn = STGCN(
@@ -212,14 +212,14 @@ def main():
     hybrid_model.lstm.flatten_parameters()
 
     total_params = sum(p.numel() for p in hybrid_model.parameters())
-    print(f"✅ Model 4.0 created: {total_params:,} parameters")
+    print(f"✅ Model 5.0 created: {total_params:,} parameters")
     print(
         f"   Architecture: {HIDDEN_CHANNELS}H + {LSTM_HIDDEN_SIZE}x{LSTM_NUM_LAYERS}L"
     )
     print(f"   Sequence: {WINDOW_SIZE}→{FORECAST_HORIZON}")
 
-    # Load Model 4.0 tasks
-    print("\nLoading Model 4.0 tasks...")
+    # Load Model 5.0 tasks
+    print("\nLoading Model 5.0 tasks...")
     all_tasks = []
     for region in MODEL_4_REGIONS:
         try:
@@ -234,11 +234,11 @@ def main():
         print("❌ No tasks loaded!")
         return
 
-    print(f"\n✅ Loaded {len(all_tasks)} Model 4.0 tasks")
+    print(f"\n✅ Loaded {len(all_tasks)} Model 5.0 tasks")
 
-    # Model 4.0 training with advanced optimizations
+    # Model 5.0 training with advanced optimizations
     print("\n" + "=" * 80)
-    print("🚀 STARTING MODEL 4.0 ULTRA TRAINING WITH OPTIMIZATIONS")
+    print("🚀 STARTING MODEL 5.0 ULTRA TRAINING WITH OPTIMIZATIONS")
     print("=" * 80)
 
     # Initialize optimizers and schedulers
@@ -253,7 +253,7 @@ def main():
 
     best_loss = float("inf")
     task_losses = []
-    log_file = "./Out_Data/hybrid_maml_v4_log.csv"
+    log_file = "./Out_Data/hybrid_maml_v5_log.csv"
 
     with open(log_file, "w") as f:
         f.write("epoch,meta_loss,learning_rate\n")
@@ -303,16 +303,44 @@ def main():
         with open(log_file, "a") as f:
             f.write(f"{epoch+1},{loss},{current_lr}\n")
 
-        # Update best loss for tracking
+        # Save best model
         if loss < best_loss:
             best_loss = loss
+            best_save_path = "./Out_Data/SavedModels/hybrid_maml_model_v5_best.pt"
+            os.makedirs(os.path.dirname(best_save_path), exist_ok=True)
+            torch.save(
+                {
+                    "hybrid_model_state_dict": hybrid_model.state_dict(),
+                    "koppen_embed_state_dict": koppen_embed.state_dict(),
+                    "meta_optimizer_state_dict": meta_optimizer.state_dict(),
+                    "scheduler_state_dict": scheduler.state_dict(),
+                    "epoch": epoch,
+                    "best_loss": best_loss,
+                    "model_version": "5.0",
+                    "total_params": total_params,
+                    "config": {
+                        "input_channels": INPUT_CHANNELS,
+                        "hidden_channels": HIDDEN_CHANNELS,
+                        "output_channels": OUTPUT_CHANNELS,
+                        "window_size": WINDOW_SIZE,
+                        "forecast_horizon": FORECAST_HORIZON,
+                    },
+                    "hybrid_config": {
+                        "lstm_hidden_size": LSTM_HIDDEN_SIZE,
+                        "lstm_num_layers": LSTM_NUM_LAYERS,
+                        "lstm_dropout": 0.2,
+                    },
+                },
+                best_save_path,
+            )
+            print(f"  💾 New best model saved! Loss: {best_loss:.4f}")
 
         # Memory cleanup every 5 epochs
         if epoch % 5 == 0:
             torch.cuda.empty_cache()
 
     # Save final model after all training
-    save_path = "./Out_Data/SavedModels/hybrid_maml_model_v4_final.pt"
+    save_path = "./Out_Data/SavedModels/hybrid_maml_model_v5_final.pt"
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     torch.save(
         {
@@ -323,7 +351,7 @@ def main():
             "epoch": NUM_EPOCHS,
             "final_loss": loss,
             "best_loss": best_loss,
-            "model_version": "4.0",
+            "model_version": "5.0",
             "total_params": total_params,
             "config": {
                 "input_channels": INPUT_CHANNELS,
@@ -342,14 +370,15 @@ def main():
     )
 
     print("\n" + "=" * 80)
-    print("✅ MODEL 4.0 ULTRA TRAINING COMPLETE!")
+    print("✅ MODEL 5.0 ULTRA TRAINING COMPLETE!")
     print("=" * 80)
-    print(f"Model Version: 4.0 Ultra Scaled")
+    print(f"Model Version: 5.0 Ultra Scaled")
     print(f"Total Parameters: {total_params:,}")
     print(f"Best Loss: {best_loss:.4f}")
     print(f"Architecture: {HIDDEN_CHANNELS}H + {LSTM_HIDDEN_SIZE}x{LSTM_NUM_LAYERS}L")
     print(f"Sequence: {WINDOW_SIZE}→{FORECAST_HORIZON}")
-    print(f"Final model saved: ./Out_Data/SavedModels/hybrid_maml_model_v4_final.pt")
+    print(f"Best model saved: ./Out_Data/SavedModels/hybrid_maml_model_v5_best.pt")
+    print(f"Final model saved: ./Out_Data/SavedModels/hybrid_maml_model_v5_final.pt")
     print(f"Training log: {log_file}")
     print("=" * 80)
 

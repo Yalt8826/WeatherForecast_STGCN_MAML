@@ -64,7 +64,7 @@ TIME_VARS = [
 ]
 
 
-def prepare_model_input(ds, koppen_code, koppen_embed_layer, normalize=True):
+def prepare_model_input(ds, koppen_code, koppen_embed_layer, normalize=True, stats=None):
     """
     Extract and prepare all features for ST-GCN input.
     HANDLES NaN VALUES in weather data.
@@ -74,6 +74,7 @@ def prepare_model_input(ds, koppen_code, koppen_embed_layer, normalize=True):
         koppen_code: Integer Köppen code
         koppen_embed_layer: KoppenEmbedding instance
         normalize: Whether to normalize weather features
+        stats: Optional pre-computed normalization stats dict with 'mean' and 'std'
 
     Returns:
         features: Tensor [time, nodes, total_features]
@@ -121,21 +122,29 @@ def prepare_model_input(ds, koppen_code, koppen_embed_layer, normalize=True):
     weather_features = weather_data.reshape(num_time, num_nodes, num_weather)
 
     # Normalize weather features
-    stats = {}
     if normalize:
-        mean = weather_features.mean(axis=(0, 1))
-        std = (
-            weather_features.std(axis=(0, 1)) + 1e-8
-        )  # Add epsilon to avoid div by zero
+        if stats is not None:
+            # Use provided stats
+            mean = np.array(stats["mean"])
+            std = np.array(stats["std"])
+            print("      ✅ Using provided normalization stats")
+        else:
+            # Compute new stats
+            mean = weather_features.mean(axis=(0, 1))
+            std = (
+                weather_features.std(axis=(0, 1)) + 1e-8
+            )  # Add epsilon to avoid div by zero
 
-        # Check for problematic values
-        if np.any(np.isnan(mean)) or np.any(np.isnan(std)):
-            print(f"      ⚠️  NaN in statistics! Using safe defaults.")
-            mean = np.nan_to_num(mean, nan=0.0)
-            std = np.nan_to_num(std, nan=1.0)
+            # Check for problematic values
+            if np.any(np.isnan(mean)) or np.any(np.isnan(std)):
+                print(f"      ⚠️  NaN in statistics! Using safe defaults.")
+                mean = np.nan_to_num(mean, nan=0.0)
+                std = np.nan_to_num(std, nan=1.0)
+            
+            stats = {"mean": mean, "std": std}
+            print("      ✅ Computed new normalization stats")
 
         weather_features = (weather_features - mean) / std
-        stats = {"mean": mean, "std": std}
 
         # ✅ DIAGNOSTIC 2: PRINT NORMALIZATION STATS
         print("\n" + "=" * 60)
@@ -146,6 +155,9 @@ def prepare_model_input(ds, koppen_code, koppen_embed_layer, normalize=True):
             if var == "t2m":
                 print(f"  👆 t2m normalized: (X - {mean[i]:.2f}) / {std[i]:.2f}")
         print("=" * 60 + "\n")
+    else:
+        if stats is None:
+            stats = {}
 
     # Convert to tensors
     weather_tensor = torch.tensor(weather_features, dtype=torch.float32)
