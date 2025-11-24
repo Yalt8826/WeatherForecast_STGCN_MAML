@@ -11,6 +11,7 @@ from featurePreprocessor import prepare_model_input
 from dataset import WeatherGraphDataset
 from model import STGCN
 from hybrid_model import HybridSTGCN_LSTM
+from adaptive_scheduler import create_climate_optimizer, ClimateAwareLRScheduler
 
 # Configuration
 MODEL_PATH = "./Out_Data/SavedModels/hybrid_maml_model_v5_best.pt"
@@ -166,10 +167,16 @@ def adaptModel(region_coords, region_name):
 
     hybrid_model.train()
 
-    # Optimizer for ALL parameters (STGCN + LSTM) - standard LR for temperate adaptation
-    optimizer = torch.optim.Adam(
-        hybrid_model.parameters(), lr=0.0006
-    )  # Standard LR for temperate patterns
+    # Climate-aware optimizer for ALL parameters (STGCN + LSTM)
+    optimizer, initial_lr = create_climate_optimizer(
+        hybrid_model.parameters(), region_name
+    )
+    
+    # Climate-aware learning rate scheduler
+    lr_scheduler = ClimateAwareLRScheduler(optimizer, region_name, initial_lr)
+    
+    print(f"   🎯 Climate-aware optimizer initialized for {region_name}")
+    print(f"   Initial LR: {initial_lr:.6f}")
     criterion = nn.MSELoss()
 
     train_loader = DataLoader(train_ds, batch_size=1, shuffle=True, num_workers=0)
@@ -196,7 +203,11 @@ def adaptModel(region_coords, region_name):
             epoch_losses.append(loss.item())
 
         avg_loss = sum(epoch_losses) / len(epoch_losses)
-        print(f"Epoch {epoch+1}/{epochs}: Loss = {avg_loss:.6f}")
+        
+        # Update learning rate based on performance
+        current_lr = lr_scheduler.step(avg_loss)
+        
+        print(f"Epoch {epoch+1}/{epochs}: Loss = {avg_loss:.6f}, LR = {current_lr:.6f}")
 
     # Validation
     print(f"\n🏙️ ADAPTATION VALIDATION ON {region_name}")
@@ -237,7 +248,7 @@ def adaptModel(region_coords, region_name):
             "config": config,
             "hybrid_config": hybrid_config,
             "model_version": "5.0",
-            "adaptation_type": "v5_regional_adaptation",
+            "adaptation_type": "v5_regional_adaptation_adaptive",
             "val_loss": avg_val_loss,
             "base_model_loss": checkpoint.get("meta_loss", "N/A"),
             "total_params": total_params,
@@ -250,7 +261,7 @@ def adaptModel(region_coords, region_name):
     print("=" * 80)
     print(f"Region: {region_name}")
     print(f"Coordinates: {region_coords}")
-    print(f"Model Version: 5.0")
+    print(f"Model Version: 5.0 (Adaptive)")
     print(f"Model size: {total_params:,} parameters")
     print(f"Final validation loss: {avg_val_loss:.6f}")
     print(f"Model saved: {save_path}")

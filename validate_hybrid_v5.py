@@ -283,6 +283,16 @@ def validateAdapted(region_coords, region_name):
         alpha=0.5,
         label="Forecast Start",
     )
+    
+    # Set fixed y-axis range for consistent temperature scaling (1K per unit)
+    all_temp_data = np.concatenate([all_temps_input[~np.isnan(all_temps_input)], 
+                                   all_temps_true[~np.isnan(all_temps_true)], 
+                                   all_temps_pred[~np.isnan(all_temps_pred)]])
+    temp_min = np.floor(np.min(all_temp_data))
+    temp_max = np.ceil(np.max(all_temp_data))
+    plt.ylim(temp_min - 2, temp_max + 2)  # Add 2K buffer
+    plt.yticks(np.arange(temp_min - 2, temp_max + 3, 1))  # 1K intervals
+    
     plt.xlabel("Time")
     plt.ylabel("Temperature (K)")
     plt.title(f"2025 Temperature Analysis - {region_name}")
