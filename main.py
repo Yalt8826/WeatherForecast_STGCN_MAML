@@ -9,12 +9,20 @@ regions = [
     ((-5, 0, 100, 105), "Indonesia"),
     ((53, 58, 35, 40), "Moscow"),
     ((8, 13, 98, 103), "Thailand"),
-    ((-33, -28, -70, -65), "Argentina"),
+    ((-33, -28, 290, 295), "Argentina"),
     ((-17, -12, 145, 150), "QueensAustralia"),
     ((70, 75, 82, 87), "NorthSiberia"),
     ((35, 40, 69, 74), "Afghanistan"),
     ((15, 20, 30, 35), "Sudan"),
     ((18, 23, 75, 80), "India"),
+    ((10, 15, 40, 45), "Ethiopia (Afar Region)"),
+    ((0, 5, 5, 10), "Debundscha, Cameroon"),
+    ((65, 70, 130, 135), "Verkhoyansk, Russia"),
+    ((60, 65, 140, 145), "Oymyakon, Russia"),
+    ((50, 55, 235, 240), "Lytton, Canada"),
+    ((-5, 0, 295, 300), "Amazon Rainforest, Brazil"),
+    ((15, 20, 355, 360), "Sahara Desert (Mali region)"),
+    ((75, 80, 10, 15), "Svalbard, Norway"),
 ]
 
 time_taken = {}
@@ -24,25 +32,25 @@ for region in regions:
         start = time.time()
         region_coords, region_name = region
         print(f"\n🌍 Processing region: {region_name}")
-        
+
         # Check if adapted model exists, if not, adapt first
         adapted_path = f"./Out_Data/AdaptedModels/hybrid_v5_adapted_{region_name}_{region_coords}.pt"
-        
+
         if not os.path.exists(adapted_path):
             print(f"🔄 Adapting Model V5 for {region_name}...")
             adaptModel(region_coords, region_name)
         else:
             print(f"✅ Using existing adapted model for {region_name}")
-        
+
         # Validate the adapted model
         print(f"🎯 Validating {region_name}...")
         validateAdapted(region_coords, region_name)
         print(f"✅ Completed processing for {region_name}")
-        
+
         end = time.time()
         time_taken[region_name] = end - start
         print(f"⏱️ Time taken for {region_name}: {time_taken[region_name]:.1f}s")
-        
+
         # Clear GPU memory after each region
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
