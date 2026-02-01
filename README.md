@@ -192,7 +192,9 @@ The design emphasizes extensibility and reproducibility, making it suitable for 
 # Author
 
 Yashas Gowda N
+
 AIML Undergraduate
+
 **Research interests**: Meta-Learning, Graph Neural Networks, Climate AI
 
 ## License
