@@ -39,7 +39,7 @@ OUTPUT_CHANNELS = 12
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Complete global coverage - 15 regions
-MODEL_4_REGIONS = [
+MODEL_REGIONS = [
     (18, 23, 75, 80),  # India
     (8, 13, 98, 103),  # Thailand
     (53, 58, 35, 40),  # Russia
@@ -61,7 +61,7 @@ print("=" * 80)
 print("🚀 HYBRID STGCN+LSTM MAML MODEL 5.0 - ULTRA SCALED")
 print("=" * 80)
 print(f"Device: {DEVICE}")
-print(f"Regions: {len(MODEL_4_REGIONS)} (Complete Global Coverage)")
+print(f"Regions: {len(MODEL_REGIONS)} (Complete Global Coverage)")
 print(f"Window: {WINDOW_SIZE}, Forecast: {FORECAST_HORIZON}")
 print(
     f"Hidden: {HIDDEN_CHANNELS}, LSTM: {LSTM_HIDDEN_SIZE} (x{LSTM_NUM_LAYERS} layers)"
@@ -221,7 +221,7 @@ def main():
     # Load Model 5.0 tasks
     print("\nLoading Model 5.0 tasks...")
     all_tasks = []
-    for region in MODEL_4_REGIONS:
+    for region in MODEL_REGIONS:
         try:
             task = create_v4_task(region, koppen_embed)
             if task[0] is not None:
